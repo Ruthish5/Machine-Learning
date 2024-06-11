@@ -1,0 +1,62 @@
+import pandas as pd
+def is_more_general(h1, h2):
+    more_general_parts = []
+    for x, y in zip(h1, h2):
+        mg = x == '?' or (x != 'ϕ' and (x == y or y == 'ϕ'))
+        more_general_parts.append(mg)
+    return all(more_general_parts)
+def is_more_specific(h1, h2):
+    return is_more_general(h2, h1)
+def update_G(G, S, instance):
+    G = [g for g in G if is_consistent(g, instance)]
+    for s in S:
+        if not is_consistent(s, instance):
+            G = minimal_generalizations(G, s, instance)
+    G = [g for g in G if any(is_more_general(g, s) for s in S)]
+    return G
+def update_S(S, G, instance):
+    S = [s for s in S if is_consistent(s, instance)]
+    for g in G:
+        if not is_consistent(g, instance):
+            S = minimal_specializations(S, g, instance)
+    S = [s for s in S if any(is_more_specific(s, g) for g in G)]
+    return S
+def is_consistent(hypothesis, instance):
+    return all(h == '?' or h == x for h, x in zip(hypothesis, instance))
+def minimal_generalizations(G, s, instance):
+    new_G = []
+    for i in range(len(s)):
+        if s[i] != instance[i]:
+            g = s.copy()
+            g[i] = '?' if s[i] != 'ϕ' else instance[i]
+            new_G.append(g)
+    return new_G
+def minimal_specializations(S, g, instance):
+    new_S = []
+    for i in range(len(g)):
+        if g[i] == '?':
+            for value in values[i]:
+                if instance[i] != value:
+                    s = g.copy()
+                    s[i] = value
+                    new_S.append(s)
+    return new_S
+data = pd.read_csv('/content/enjoySport.csv')
+features = data.columns[:-1]
+target = data.columns[-1]
+G = [['?' for _ in range(len(features))]]
+S = [['ϕ' for _ in range(len(features))]]
+values = [list(data[feature].unique()) for feature in features]
+for i, row in data.iterrows():
+    instance = row[:-1].tolist()
+    if row[target] == 'Yes':
+        S = update_S(S, G, instance)
+    else:
+        G = update_G(G, S, instance)
+print("The final G set is:")
+for g in G:
+    print(g)
+
+print("The final S set is:")
+for s in S:
+    print(s)
